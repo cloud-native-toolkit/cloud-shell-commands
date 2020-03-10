@@ -1,5 +1,5 @@
 #!/bin/bash
-rm -rf ~./.npm
+rm -rf ~/.npm
 mkdir ~/.npm
 npm config set prefix ~/.npm
 npm i -g @ibmgaragecloud/cloud-native-toolkit-cli
