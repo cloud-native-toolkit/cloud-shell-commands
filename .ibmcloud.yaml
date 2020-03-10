@@ -1,0 +1,84 @@
+accounts:
+  mooc: <api key>
+  gsi: <api ke>
+clusters:
+  ocp4:
+    region: us-east
+    resourceGroup: garage-dev-tools
+    cluster: garage-dev-ocp4-cluster
+    account: mooc
+  g1k:
+    region: eu-gb
+    resourceGroup: gsi-cloudnative-squad
+    cluster: gsi-learning-iks-cluster
+    account: gsi
+  g1o:
+    region: eu-gb
+    resourceGroup: gsi-cloudnative-squad
+    cluster: gsi-learning-ocp311-cluster
+    account: gsi
+  gd3:
+    region: us-south
+    resourceGroup: gsi-cloudnatve-dev-squad
+    cluster: gsi-dev-ocp311-cluster
+    account: gsi
+  gd4:
+    region: us-south
+    resourceGroup: gsi-cloudnative-dev-squad
+    cluster: gsi-dev-ocp43-cluster
+    account: gsi    
+  gdk:
+    region: us-south
+    resourceGroup: gsi-cloudnative-dev-squad
+    cluster: gsi-dev-iks-cluster
+    account: gsi
+  m1o:
+    region: us-east
+    resourceGroup: mooc-team-one
+    cluster: mooc-one-ocp-cluster
+    account: mooc
+  m1k:
+    region: us-east
+    resourceGroup: mooc-team-one
+    cluster: mooc-one-iks-cluster
+    account: mooc
+  m2o:
+    region: eu-gb
+    resourceGroup: mooc-team-two
+    cluster: mooc-two-ocp-cluster
+    account: mooc
+  m2k:
+    region: eu-gb
+    resourceGroup: mooc-team-two
+    cluster: mooc-two-iks-cluster
+    account: mooc
+  m3o:
+    region: jp-tok
+    resourceGroup: mooc-team-three
+    cluster: mooc-three-ocp-cluster
+    account: mooc
+  m3k:
+    region: jp-tok
+    resourceGroup: mooc-team-three
+    cluster: mooc-three-iks-cluster
+    account: mooc
+  m4o:
+    region: us-south
+    resourceGroup: mooc-team-south
+    cluster: mooc-four-ocp-cluster
+    account: mooc
+  m4k:
+    region: us-south
+    resourceGroup: mooc-team-four
+    cluster: mooc-four-iks-cluster
+    account: mooc
+  so:
+    region: us-east
+    resourceGroup: mooc-team-surge
+    cluster: mooc-surge-ocp01-cluster
+    account: mooc
+  sk:
+    region: us-east
+    resourceGroup: mooc-team-surge
+    cluster: mooc-surge-iks-cluster
+    account: mooc
