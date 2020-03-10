@@ -11,6 +11,14 @@ chmod +x ./cloud-shell-commands/*
 export PATH=~/cloud-shell-commands:$PATH
 ```
 
+## Installing Cloud Native Toolkit CLI
+
+Run the following command `./cloud-shell-commands/install-igc` this will install and add `igc` to the path
+
+## Enabling fast Cluster switching 
+
+Using the utility CLI `icc` you can make it easy to switch between cluster accounts, follow the instructions below:
+
 ### Add API Key
 
 Edit the `.ibmcloud.yaml` file in the `cloud-shell-commands` replace the accounts with the correct API Keys.
