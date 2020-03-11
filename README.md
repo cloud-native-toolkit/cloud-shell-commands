@@ -1,4 +1,4 @@
-# cloud-shell-commands
+# IBM Cloud Shell Command
 
 Set of scripts to enable fast access to setup to the **Cloud Native Toolkit** in the cloud shell, if you shell has expired you will need to re-run your setup.
 
