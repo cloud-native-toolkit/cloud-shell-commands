@@ -1,6 +1,6 @@
 # cloud-shell-commands
 
-Set of scripts to enable fast access to setup to the **Cloud Native Toolkit** in the cloud shell
+Set of scripts to enable fast access to setup to the **Cloud Native Toolkit** in the cloud shell, if you shell has expired you will need to re-run your setup.
 
 ### Follow these commands to configure the commands
 
@@ -16,8 +16,7 @@ export PATH=~/cloud-shell-commands:$PATH
 Run the following to install `igc` and add it to the path.
 
 ```
-./cloud-shell-commands/install-igc
-export PATH=~/.npm/bin:$PATH
+source ./cloud-shell-commands/install-igc
 ```
 
 ## Enabling fast Cluster switching 
