@@ -2,6 +2,10 @@
 
 Set of scripts to enable fast access to setup to the **Cloud Native Toolkit** in the cloud shell, if you shell has expired you will need to re-run your setup.
 
+## Fork
+
+Fork this repo into you personal github account and customize the parameters for you personal configuration. Then use the git repo to clone into the Cloud Shell.
+
 ### Follow these commands to configure the commands
 
 The **cloud-shell-commands** contains a number of very useful commands for a developer or sys admin. They are also very useful for when you are running education, enablement or workshops where you want the developer to live 100% in the web browser.
