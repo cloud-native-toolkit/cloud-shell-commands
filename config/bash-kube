@@ -15,5 +15,5 @@ function get_cluster_short() {
 
 KUBE_PS1_CLUSTER_FUNCTION=get_cluster_short
 
-source "/usr/local/bin/kube-ps1.sh"
+source "${HOME}/bin/kube-ps1.sh"
 PS1='[\u@\h \W $(kube_ps1)]\$ '
