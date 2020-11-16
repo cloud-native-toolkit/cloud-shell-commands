@@ -1,30 +1,242 @@
 #!/bin/bash
 
 CLUSTER_ID="$1"
+ARG="$2"
 
-if [[ ! -f ~/cloud-shell-commands/.ibmcloud.yaml ]]; then
-  echo "Provide configuration in ~/cloud-shell-commands/.ibmcloud.yaml"
+if [[ -z "${ICC_HOME}" ]]; then
+  ICC_HOME="${HOME}"
+fi
+
+# The file where the cluster configuration is stored
+CONFIG_FILE="${ICC_HOME}/ibmcloud.yaml"
+if [[ ! -f ${CONFIG_FILE} ]]; then
+  CONFIG_FILE="${ICC_HOME}/.ibmcloud.yaml"
+fi
+
+# The optional file where the account apikeys are stored. If not found
+# ${CONFIG_FILE} will be used
+ACCOUNT_FILE="${ICC_HOME}/ibmcloud-account.yaml"
+
+export ACCOUNT_FILE
+export CONFIG_FILE
+
+if [[ ! -f ${CONFIG_FILE} ]] && [[ ! "$1" =~ --generate ]]; then
+  echo "No configuration found. Generate the configuration by running '$0 --generate'"
   exit 1
 fi
 
-RESOURCE_GROUP="$(yq r ~/cloud-shell-commands/.ibmcloud.yaml clusters.${CLUSTER_ID}.resourceGroup)"
+function print_help {
+  echo "Usage: $(basename $0) [nickname] [--account {ACCOUNT_FILTER}] [--resourceGroup {RG_FILTER}] [--generate [{ACCOUNT_FILTER}]] [--nickname [{cluster name}]]"
+  echo ""
+  echo "  Logs into an IBM Cloud cluster"
+  echo ""
+  echo "Modes:"
+  echo "  cluster login   - icc {nickname}"
+  echo "  print config    - icc [--account {account name}] [--resourceGroup {resourceGroupName}]"
+  echo "  generate config - icc --generate [{account name}]"
+  echo "  update nickname - icc --nickname [{cluster name}]"
+  echo ""
+  echo "Args:"
+  echo "  nickname - the cluster nickname"
+  echo "  --account, -a - filter to print the config for the provided account"
+  echo "  --resourceGroup, -g - filter to print the config for the provided resource group"
+  echo "  --generate - flag to generate the config from the account, optionally restricted to {account name}. The --generate process appends to the existing configuration"
+  echo "  --nickname - update the nickname for a cluster, optionally passing the cluster name after the flag"
+  echo "  --help, -h - display help"
+  exit 0
+}
+
+function add_account {
+  ACCOUNT_NAME="$1"
+  if [[ -z "${ACCOUNT_NAME}" ]]; then
+    echo -n "Please provide the nickname for the account: "
+    read ACCOUNT_NAME
+  fi
+
+  echo -e -n "Provide the API Key for the \033[33m${ACCOUNT_NAME}\033[0m account: "
+  read -s APIKEY
+
+  touch ${ICC_HOME}/ibmcloud-account.yaml
+  echo "$ACCOUNT_NAME: $APIKEY" | yq p - accounts | yq m ${ICC_HOME}/ibmcloud-account.yaml - > /tmp/account.yaml
+  cp /tmp/account.yaml ${ICC_HOME}/ibmcloud-account.yaml && rm /tmp/account.yaml
+
+  echo "Account information added to ${ICC_HOME}/ibmcloud-account.yaml"
+
+  exit 0
+}
+
+function generate_config {
+  ACCOUNT_NAMES="$2"
+  if [[ -z "$2" ]]; then
+    ACCOUNT_NAMES=$(yq r ${ICC_HOME}/.ibmcloud-account.yaml accounts -j | jq -r '. | keys | .[]')
+    echo "Generate config for accounts: $(echo $ACCOUNT_NAMES | paste -sd ',' -)"
+  else
+    echo "Generate config for account: $2"
+  fi
+
+  PROVIDERS="classic vpc-gen2 satellite"
+
+  echo "${ACCOUNT_NAMES}" | while read ACCOUNT_NAME; do
+    if [[ -f ${ACCOUNT_FILE} ]]; then
+      APIKEY="$(yq r ${ACCOUNT_FILE} accounts.${ACCOUNT_NAME})"
+    else
+      APIKEY="$(yq r ${CONFIG_FILE} accounts.${ACCOUNT_NAME})"
+    fi
+    if [[ -z "${APIKEY}" ]]; then
+      echo "APIKEY not found in config: $ACCOUNT_NAME"
+      continue
+    fi
+
+    echo "  Logging in to account: ${ACCOUNT_NAME}"
+    ibmcloud login --apikey "${APIKEY}" 1> /dev/null
+    touch "$1"
+
+    for PROVIDER in ${PROVIDERS}; do
+      echo "    Processing provider: $PROVIDER"
+      PROVIDER_JSON=$(ibmcloud ks cluster ls --provider "${PROVIDER}" --output json)
+      if [[ $(echo "${PROVIDER_JSON}" | jq 'length') == "0" ]]; then
+        echo "      No clusters for provider"
+        continue
+      fi
+
+      echo "${PROVIDER_JSON}" | \
+        jq --arg ACCOUNT "${ACCOUNT_NAME}" --arg PROVIDER "${PROVIDER}" 'map({key: .id, value: {nickname: .name|ascii_downcase, cluster: .name, region: .region, resourceGroup: .resourceGroupName, account: $ACCOUNT, clusterType: .type, serverUrl: (if has("masterURL") then .masterURL else .serverURL end), provider: $PROVIDER}}) | from_entries' | \
+        yq r --prettyPrint - | \
+        yq p - 'clusters' | \
+        yq m "$1" - > /tmp/clusters.yaml && \
+        mv /tmp/clusters.yaml "$1"
+    done
+  done
+
+  echo "Config file generated/updated: $1"
+  exit 0
+}
+
+function update_nickname {
+  CLUSTER_ID="$1"
+  if [[ -z "${CLUSTER_ID}" ]]; then
+    echo -n "Please provide the current cluster name or nickname: "
+    read CLUSTER_ID
+  fi
+
+  echo -e -n "Provide the new nickname for \033[33m${CLUSTER_ID}\033[0m: "
+  read NICKNAME
+
+  CLUSTER_KEY=$(yq r -j ${CONFIG_FILE} clusters | jq -r --arg CLUSTER_ID "${CLUSTER_ID}" '. | to_entries | .[] | . |= (.key = .key) + .value | del(.value) | select(.cluster == $CLUSTER_ID or .nickname == $CLUSTER_ID) | .key')
+
+  yq w ${ICC_HOME}/ibmcloud.yaml "clusters.${CLUSTER_KEY}.nickname" "${NICKNAME}" > /tmp/ibmcloud.yaml && \
+    cp /tmp/ibmcloud.yaml ${ICC_HOME}/ibmcloud.yaml && \
+    rm /tmp/ibmcloud.yaml
+  
+  echo "Nickname for ${CLUSTER_ID} updated to ${NICKNAME} in ${ICC_HOME}/ibmcloud.yaml"
+
+  exit 0
+}
+
+if [[ -z "$1" ]] || [[ "$1" =~ ^- ]]; then
+  if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    print_help
+  elif [[ "$1" =~ --generate ]]; then
+    ACCOUNT_NAME=""
+    if [[ "$1" == "--generate" ]]; then
+      ACCOUNT_NAME="$2"
+    elif [[ "$1" =~ --generate= ]]; then
+      ACCOUNT_NAME=$(echo "$1" | sed -E "s/--generate=//g")
+    fi
+
+    if [[ ! -f "${CONFIG_FILE}" ]]; then
+      CONFIG_FILE="${ICC_HOME}/ibmcloud.yaml"
+    fi
+
+    generate_config "${CONFIG_FILE}" "${ACCOUNT_NAME}"
+  elif [[ "$1" =~ --add-account ]]; then
+    ACCOUNT_NAME=""
+    if [[ "$1" == "--add-account" ]]; then
+      ACCOUNT_NAME="$2"
+    elif [[ "$1" =~ --add-account= ]]; then
+      ACCOUNT_NAME=$(echo "$1" | sed -E "s/--add-account=//g")
+    fi
+
+    add_account "${ACCOUNT_NAME}"
+  elif [[ "$1" =~ --nickname ]]; then
+    NICKNAME=""
+    if [[ "$1" == "--nickname" ]]; then
+      NICKNAME="$2"
+    elif [[ "$1" =~ --nickname= ]]; then
+      NICKNAME=$(echo "$1" | sed -E "s/--nickname=//g")
+    fi
+
+    update_nickname "${NICKNAME}"
+  fi
+
+  IBMCLOUD_CONFIG=$(yq r -j "${CONFIG_FILE}" clusters | jq '. | to_entries | sort_by(.value.account) | .[] | . |= (.key = .key) + .value | del(.value)')
+
+  ACCOUNT_FILTER=".*"
+  RG_FILTER=".*"
+  if [[ -n "$1" ]]; then
+    index=1
+    for var in "$@"; do
+      if [[ "$var" == "--account" ]]; then
+        index=$((index + 1))
+        eval ACCOUNT_FILTER=\$$index
+      elif [[ "$var" =~ ^--account ]]; then
+        ACCOUNT_FILTER=$(echo "$var" | sed -E "s/--account=//g")
+      elif [[ "$var" == "--resourceGroup" ]]; then
+        index=$((index + 1))
+        eval RG_FILTER=\$$index
+      elif [[ "$var" =~ ^--resourceGroup ]]; then
+        RG_FILTER=$(echo "$var" | sed -E "s/--resourceGroup=//g")    
+      fi
+      index=$((index + 1))
+    done
+  fi
+  
+  IBMCLOUD_CONFIG=$(echo "${IBMCLOUD_CONFIG}" | jq --arg ACCOUNT "${ACCOUNT_FILTER}" --arg RG "${RG_FILTER}" 'select(.account|test($ACCOUNT)) | select(.resourceGroup|test($RG))')
+
+  echo $IBMCLOUD_CONFIG | jq -r '"\(if has("nickname") then .nickname else .key end) - \(.account)/\(.resourceGroup)/\(.cluster)"'
+  exit 0
+fi
+
+CLUSTER_RECORD=$(yq r -j ${CONFIG_FILE} clusters | jq --arg CLUSTER_ID "${CLUSTER_ID}" '. | to_entries | .[] | . |= (.key = .key) + .value | del(.value) | select(.cluster == $CLUSTER_ID or .nickname == $CLUSTER_ID)' | yq r --prettyPrint -)
+
+if [[ -z "${CLUSTER_RECORD}" ]]; then
+  echo "Unable to find configuration for cluster: ${CLUSTER_ID}"
+  echo "Check for the configuration in ${CONFIG_FILE}"
+  exit 1
+fi
+
+RESOURCE_GROUP="$(echo "${CLUSTER_RECORD}" | yq r - resourceGroup)"
 if [[ -z "${RESOURCE_GROUP}" ]]; then
   echo "Resource group not found in config"
   exit 1
 fi
 
-CLUSTER_NAME="$(yq r ~/cloud-shell-commands/.ibmcloud.yaml clusters.${CLUSTER_ID}.cluster)"
-if [[ -z "${CLUSTER_NAME}" ]]; then
+CLUSTER_NAME="$(echo "${CLUSTER_RECORD}" | yq r - cluster)"
+if [[ "${CLUSTER_NAME}" == "null" ]]; then
   CLUSTER_NAME="${RESOURCE_GROUP}-cluster"
 fi
 
-REGION="$(yq r ~/cloud-shell-commands/.ibmcloud.yaml clusters.${CLUSTER_ID}.region)"
-if [[ -z "${REGION}" ]]; then
+REGION="$(echo "${CLUSTER_RECORD}" | yq r - region)"
+if [[ "${REGION}" == "null" ]]; then
   REGION="us-east"
 fi
 
-ACCOUNT_NAME="$(yq r ~/cloud-shell-commands/.ibmcloud.yaml clusters.${CLUSTER_ID}.account)"
-APIKEY="$(yq r ~/cloud-shell-commands/.ibmcloud.yaml accounts.${ACCOUNT_NAME})"
+API="$(echo "${CLUSTER_RECORD}" | yq r - api)"
+if [[ "${API}" == "null" ]]; then
+  API="cloud.ibm.com"
+fi
+
+ACCOUNT_NAME="$(echo "${CLUSTER_RECORD}" | yq r - account)"
+
+SERVER_URL="$(echo "${CLUSTER_RECORD}" | yq r - serverUrl)"
+
+CLUSTER_TYPE="$(echo "${CLUSTER_RECORD}" | yq r - clusterType)"
+
+if [[ -f ${ACCOUNT_FILE} ]]; then
+  APIKEY="$(yq r ${ACCOUNT_FILE} accounts.${ACCOUNT_NAME})"
+else
+  APIKEY="$(yq r ${CONFIG_FILE} accounts.${ACCOUNT_NAME})"
+fi
 if [[ -z "${APIKEY}" ]]; then
   echo "APIKEY not found in config"
   exit 1
@@ -44,14 +256,45 @@ ibmcloud login \
   -g ${RESOURCE_GROUP} \
   -r ${REGION} 1> /dev/null 2> /dev/null
 
-OPENSHIFT=$(ibmcloud ks cluster get --cluster ${CLUSTER_NAME} | grep Version | grep openshift)
-if [[ -z "${OPENSHIFT}" ]]; then
+if [[ -z "${CLUSTER_TYPE}" ]]; then
+  echo "Looking up cluster type for cluster: ${CLUSTER_NAME}"
+
+  CLUSTER_TYPE=$(ibmcloud ks cluster get --cluster ${CLUSTER_NAME} | grep Version | grep -q openshift && echo "openshift")
+fi
+
+if [[ "${ARG}" == "--sync" ]]; then
+  echo "Synchronizing IAM RBAC to cluster"
+  ibmcloud ks cluster config --admin --cluster ${CLUSTER_NAME}
+fi
+
+if [[ "${CLUSTER_TYPE}" != "openshift" ]]; then
+  if [[ -z "${SERVER_URL}" ]]; then
+    echo "Looking up server url for cluster: ${CLUSTER_NAME}"
+    SERVER_URL=$(ibmcloud ks cluster get --cluster ${CLUSTER_NAME} | grep "Public Service Endpoint URL" | sed -E "s/.*(http.*)/\1/g" | xargs -I{} echo -n {})
+  fi
+
   echo "Logging into IKS cluster: ${CLUSTER_NAME}"
   export IKS_BETA_VERSION=1
   ibmcloud ks cluster config --cluster ${CLUSTER_NAME}
 else
-  SERVER_URL=$(ibmcloud ks cluster get --cluster ${CLUSTER_NAME} | grep "Public Service Endpoint URL" | sed -E "s/.*(http.*)/\1/g" | xargs -I{} echo -n {})
+  if [[ -z "${SERVER_URL}" ]]; then
+    echo "Looking up server url for cluster: ${CLUSTER_NAME}"
+    SERVER_URL=$(ibmcloud ks cluster get --cluster ${CLUSTER_NAME} | grep "Public Service Endpoint URL" | sed -E "s/.*(http.*)/\1/g" | xargs -I{} echo -n {})
+  fi
 
-  echo "Logging into OpenShift cluster: ${CLUSTER_NAME}"
-  oc login -u apikey -p ${APIKEY} --server=${SERVER_URL} 1> /dev/null 2> /dev/null
+  echo "Logging into OpenShift cluster ${CLUSTER_NAME} with server url ${SERVER_URL}"
+  oc login -u apikey -p ${APIKEY} --server=${SERVER_URL} 1> /dev/null
 fi
+
+if ! kubectl config get-clusters 1> /dev/null 2> /dev/null; then
+  echo "No clusters configured!!"
+  exit 1
+fi
+
+# Clean up any existing cluster first
+if kubectl config get-clusters | grep "${CLUSTER_NAME}" 1> /dev/null; then
+  kubectl config delete-cluster "${CLUSTER_NAME}" 1> /dev/null
+fi
+
+# Add a cluster with our short name
+kubectl config set-cluster "${CLUSTER_NAME}" --server="${SERVER_URL}" 1> /dev/null
