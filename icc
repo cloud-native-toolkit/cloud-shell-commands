@@ -17,10 +17,12 @@ ACCOUNT_FILE="${ICC_HOME}/ibmcloud-account.yaml"
 export ACCOUNT_FILE
 export CONFIG_FILE
 
-if [[ ! -f ${ACCOUNT_FILE} ]] && [[ ! "$1" =~ --add-account ]]; then
+if [[ ! -f ${ACCOUNT_FILE} ]] && [[ ! "$1" =~ --add-account ]] && [[ ! "$1" == "--help" ]]; then
   echo "No account configuration found. Add an account by running '$0 --add-account'"
   exit 1
-elif [[ -f ${ACCOUNT_FILE} ]] && [[ ! -f ${CONFIG_FILE} ]] && [[ ! "$1" =~ --generate ]]; then
+fi
+
+if [[ ! -f ${CONFIG_FILE} ]] && [[ ! "$1" =~ --generate ]] && [[ ! "$1" =~ --add-account ]] && [[ ! "$1" == "--help" ]]; then
   echo "No cluster configuration found. Generate the configuration by running '$0 --generate'"
   exit 1
 fi
@@ -31,10 +33,10 @@ function print_help {
   echo "  Logs into an IBM Cloud cluster"
   echo ""
   echo "Modes:"
-  echo "  cluster login   - icc {nickname}"
-  echo "  print config    - icc [--account {account name}] [--resourceGroup {resourceGroupName}]"
-  echo "  generate config - icc --generate [{account name}]"
-  echo "  update nickname - icc --nickname [{cluster name}]"
+  echo "  cluster login   - $(basename $0) {nickname}"
+  echo "  print config    - $(basename $0) [--account {account name}] [--resourceGroup {resourceGroupName}]"
+  echo "  generate config - $(basename $0) --generate [{account name}]"
+  echo "  update nickname - $(basename $0) --nickname [{cluster name}]"
   echo ""
   echo "Args:"
   echo "  nickname - the cluster nickname"
@@ -54,13 +56,20 @@ function add_account {
   fi
 
   echo -e -n "Provide the API Key for the \033[33m${ACCOUNT_NAME}\033[0m account: "
-  read -s APIKEY
+  APIKEY=""
+  while [[ -z "${APIKEY}" ]]; do
+    read -s APIKEY
+  done
 
   touch ${ICC_HOME}/ibmcloud-account.yaml
   echo "$ACCOUNT_NAME: $APIKEY" | yq p - accounts | yq m ${ICC_HOME}/ibmcloud-account.yaml - > /tmp/account.yaml
   cp /tmp/account.yaml ${ICC_HOME}/ibmcloud-account.yaml && rm /tmp/account.yaml
 
-  echo "Account information added to ${ICC_HOME}/ibmcloud-account.yaml"
+  echo ""
+  echo "Account information added for ${ACCOUNT_NAME}"
+  echo ""
+  echo "Next steps:"
+  echo " - Run '$0 --generate' to generate the cluster config from the account"
 
   exit 0
 }
@@ -109,6 +118,11 @@ function generate_config {
   done
 
   echo "Config file generated/updated: $1"
+  echo ""
+  echo "Next steps:"
+  echo " - Run '$0' to list the clusters"
+  echo " - Run '$0 {nickname}' to log into a cluster"
+  echo " - Run '$0 --nickname' to update the nickname for a cluster"
   exit 0
 }
 
