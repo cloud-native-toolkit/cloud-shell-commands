@@ -1,0 +1,6 @@
+#!/bin/bash
+
+mkdir -p ~/bin
+cp icc ~/bin
+
+echo "export PATH=~/bin:\$PATH" > ~/.bashrc
