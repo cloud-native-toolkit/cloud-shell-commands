@@ -15,50 +15,79 @@ fi
 
 # The optional file where the account apikeys are stored. If not found
 # ${CONFIG_FILE} will be used
-ACCOUNT_FILE="${ICC_HOME}/.ibmcloud-account.yaml"
+ACCOUNT_FILE="${ICC_HOME}/ibmcloud-account.yaml"
 
-if [[ ! -f ${CONFIG_FILE} ]]; then
-  echo "Provide configuration in ~/.ibmcloud.yaml"
+export ACCOUNT_FILE
+export CONFIG_FILE
+
+if [[ ! -f ${CONFIG_FILE} ]] && [[ ! "$1" =~ --generate ]]; then
+  echo "No configuration found. Generate the configuration by running '$0 --generate'"
   exit 1
 fi
 
 function print_help {
-  echo "Usage: $(basename $0) [nickname] [--account {ACCOUNT_FILTER}] [--resourceGroup {RG_FILTER}] [--generate]"
+  echo "Usage: $(basename $0) [nickname] [--account {ACCOUNT_FILTER}] [--resourceGroup {RG_FILTER}] [--generate [{ACCOUNT_FILTER}]]"
   echo ""
   echo "  Logs into an IBM Cloud cluster"
   echo ""
   echo "Modes:"
-  echo "  login    - provide the nickname for the cluster"
-  echo "  print    - provide no arguments or --account and/or --resourceGroup filters"
-  echo "  generate - provide the --generate argument"
+  echo "  login    - icc {nickname}"
+  echo "  print    - icc [--account {account name}] [--resourceGroup {resourceGroupName}]"
+  echo "  generate - icc --generate [{account name}]"
   echo ""
   echo "Args:"
   echo "  nickname - the cluster nickname"
   echo "  --account, -a - filter to print the config for the provided account"
   echo "  --resourceGroup, -g - filter to print the config for the provided resource group"
-  echo "  --generate - flag to generate the config for the current logged in account"
+  echo "  --generate - flag to generate the config from the account, optionally restricted to {account name}. The --generate process appends to the existing configuration"
   echo "  --help, -h - display help"
   exit 0
 }
 
-function check_ibmcloud_login {
-  if ibmcloud target | grep -q "Not logged in" > /dev/null; then
-    echo "You must be logged into the account with the ibmcloud cli to gnerate the config"
-    exit 1
-  fi
-}
-
 function generate_config {
-  ACCOUNT_NAME=$(ibmcloud target | grep Account | sed -E "s/Account: +([A-Za-z0-9-]+).*/\1/g" | tr '[:upper:]' '[:lower:]')
-  echo "Generate config for account: $ACCOUNT_NAME in $1"
+  ACCOUNT_NAMES="$2"
+  if [[ -z "$2" ]]; then
+    ACCOUNT_NAMES=$(yq r ${ICC_HOME}/.ibmcloud-account.yaml accounts -j | jq -r '. | keys | .[]')
+    echo "Generate config for accounts: $(echo $ACCOUNT_NAMES | paste -sd ',' -)"
+  else
+    echo "Generate config for account: $2"
+  fi
 
-  ibmcloud ks cluster ls --output json | \
-    jq --arg ACCOUNT kedar '[{key: .[].name, value: {region: .[].region, resourceGroup: .[].resourceGroupName, cluster: .[].name, account: $ACCOUNT}}] | from_entries' | \
-    yq r --prettyPrint - | \
-    yq p - 'clusters' | \
-    yq m "$1" - > /tmp/clusters.yaml && \
-    mv /tmp/clusters.yaml "$1"
+  PROVIDERS="classic vpc-gen2 satellite"
 
+  echo "${ACCOUNT_NAMES}" | while read ACCOUNT_NAME; do
+    if [[ -f ${ACCOUNT_FILE} ]]; then
+      APIKEY="$(yq r ${ACCOUNT_FILE} accounts.${ACCOUNT_NAME})"
+    else
+      APIKEY="$(yq r ${CONFIG_FILE} accounts.${ACCOUNT_NAME})"
+    fi
+    if [[ -z "${APIKEY}" ]]; then
+      echo "APIKEY not found in config: $ACCOUNT_NAME"
+      continue
+    fi
+
+    echo "  Logging in to account: ${ACCOUNT_NAME}"
+    ibmcloud login --apikey "${APIKEY}" 1> /dev/null
+    touch "$1"
+
+    for PROVIDER in ${PROVIDERS}; do
+      echo "    Processing provider: $PROVIDER"
+      PROVIDER_JSON=$(ibmcloud ks cluster ls --provider "${PROVIDER}" --output json)
+      if [[ $(echo "${PROVIDER_JSON}" | jq 'length') == "0" ]]; then
+        echo "      No clusters for provider"
+        continue
+      fi
+
+      echo "${PROVIDER_JSON}" | \
+        jq --arg ACCOUNT "${ACCOUNT_NAME}" --arg PROVIDER "${PROVIDER}" 'map({key: .id, value: {nickname: .name|ascii_downcase, cluster: .name, region: .region, resourceGroup: .resourceGroupName, account: $ACCOUNT, clusterType: .type, serverUrl: (if has("masterURL") then .masterURL else .serverURL end), provider: $PROVIDER}}) | from_entries' | \
+        yq r --prettyPrint - | \
+        yq p - 'clusters' | \
+        yq m "$1" - > /tmp/clusters.yaml && \
+        mv /tmp/clusters.yaml "$1"
+    done
+  done
+
+  echo "Config file generated/updated: $1"
   exit 0
 }
 
@@ -67,9 +96,19 @@ if [[ -z "$1" ]] || [[ "$1" =~ ^- ]]; then
     print_help
   fi
 
-  if [[ "$1" == "--generate" ]]; then
-    check_ibmcloud_login
-    generate_config "${CONFIG_FILE}"
+  if [[ "$1" =~ "--generate" ]]; then
+    ACCOUNT_NAME=""
+    if [[ "$1" == "--generate" ]]; then
+      ACCOUNT_NAME="$2"
+    elif [[ "$1" =~ "--generate=" ]]; then
+      ACCOUNT_NAME=$(echo "$1" | sed -E "s/--generate=//g")
+    fi
+
+    if [[ ! -f "${CONFIG_FILE}" ]]; then
+      CONFIG_FILE="${ICC_HOME}/ibmcloud.yaml"
+    fi
+
+    generate_config "${CONFIG_FILE}" "${ACCOUNT_NAME}"
   fi
 
   IBMCLOUD_CONFIG=$(yq r -j "${CONFIG_FILE}" clusters | jq '. | to_entries | sort_by(.value.account) | .[] | . |= (.key = .key) + .value | del(.value)')
@@ -96,11 +135,17 @@ if [[ -z "$1" ]] || [[ "$1" =~ ^- ]]; then
   
   IBMCLOUD_CONFIG=$(echo "${IBMCLOUD_CONFIG}" | jq --arg ACCOUNT "${ACCOUNT_FILTER}" --arg RG "${RG_FILTER}" 'select(.account|test($ACCOUNT)) | select(.resourceGroup|test($RG))')
 
-  echo $IBMCLOUD_CONFIG | jq -r '"\(.key) - \(.account)/\(.resourceGroup)/\(.cluster)"'
+  echo $IBMCLOUD_CONFIG | jq -r '"\(if has("nickname") then .nickname else .key end) - \(.account)/\(.resourceGroup)/\(.cluster)"'
   exit 0
 fi
 
-CLUSTER_RECORD=$(yq r ${CONFIG_FILE} clusters.${CLUSTER_ID})
+CLUSTER_RECORD=$(yq r -j ${CONFIG_FILE} clusters | jq --arg CLUSTER_ID "${CLUSTER_ID}" '. | to_entries | .[] | . |= (.key = .key) + .value | del(.value) | select(.cluster == $CLUSTER_ID or .nickname == $CLUSTER_ID)' | yq r --prettyPrint -)
+
+if [[ -z "${CLUSTER_RECORD}" ]]; then
+  echo "Unable to find configuration for cluster: ${CLUSTER_ID}"
+  echo "Check for the configuration in ${CONFIG_FILE}"
+  exit 1
+fi
 
 RESOURCE_GROUP="$(echo "${CLUSTER_RECORD}" | yq r - resourceGroup)"
 if [[ -z "${RESOURCE_GROUP}" ]]; then
@@ -128,9 +173,6 @@ ACCOUNT_NAME="$(echo "${CLUSTER_RECORD}" | yq r - account)"
 SERVER_URL="$(echo "${CLUSTER_RECORD}" | yq r - serverUrl)"
 
 CLUSTER_TYPE="$(echo "${CLUSTER_RECORD}" | yq r - clusterType)"
-if [[ -n "${SERVER_URL}" ]]; then
-  CLUSTER_TYPE="openshift"
-fi
 
 if [[ -f ${ACCOUNT_FILE} ]]; then
   APIKEY="$(yq r ${ACCOUNT_FILE} accounts.${ACCOUNT_NAME})"
