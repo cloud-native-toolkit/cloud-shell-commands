@@ -46,6 +46,11 @@ A utility CLI named `icc` has been provided to make it easy to switch between cl
 
 To configure the CLI for your environment, follow the instructions below:
 
+### (Optionally) Install the icc in the path
+
+1. Run the `install-icc` command to copy the `icc` command to ~/bin and update .bashrc
+2. Source .bashrc to pick up the change: `source ~/.bashrc`
+
 ### Set ICC_HOME
 
 By default the `icc` command looks for the configuration files in the `ICC_HOME` directory. If the environment variable has not been set the value defaults to
