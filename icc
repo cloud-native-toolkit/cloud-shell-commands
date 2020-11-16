@@ -9,9 +9,6 @@ fi
 
 # The file where the cluster configuration is stored
 CONFIG_FILE="${ICC_HOME}/ibmcloud.yaml"
-if [[ ! -f ${CONFIG_FILE} ]]; then
-  CONFIG_FILE="${ICC_HOME}/.ibmcloud.yaml"
-fi
 
 # The optional file where the account apikeys are stored. If not found
 # ${CONFIG_FILE} will be used
@@ -23,9 +20,7 @@ export CONFIG_FILE
 if [[ ! -f ${ACCOUNT_FILE} ]] && [[ ! "$1" =~ --add-account ]]; then
   echo "No account configuration found. Add an account by running '$0 --add-account'"
   exit 1
-fi
-
-if [[ ! -f ${CONFIG_FILE} ]] && [[ ! "$1" =~ --generate ]]; then
+elif [[ -f ${ACCOUNT_FILE} ]] && [[ ! -f ${CONFIG_FILE} ]] && [[ ! "$1" =~ --generate ]]; then
   echo "No cluster configuration found. Generate the configuration by running '$0 --generate'"
   exit 1
 fi
@@ -73,7 +68,7 @@ function add_account {
 function generate_config {
   ACCOUNT_NAMES="$2"
   if [[ -z "$2" ]]; then
-    ACCOUNT_NAMES=$(yq r ${ICC_HOME}/.ibmcloud-account.yaml accounts -j | jq -r '. | keys | .[]')
+    ACCOUNT_NAMES=$(yq r ${ICC_HOME}/ibmcloud-account.yaml accounts -j | jq -r '. | keys | .[]')
     echo "Generate config for accounts: $(echo $ACCOUNT_NAMES | paste -sd ',' -)"
   else
     echo "Generate config for account: $2"
