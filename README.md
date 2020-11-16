@@ -51,7 +51,7 @@ To configure the CLI for your environment, follow the instructions below:
 1. Run the `install-icc` command to copy the `icc` command to ~/bin and update .bashrc
 2. Source .bashrc to pick up the change: `source ~/.bashrc`
 
-### Set ICC_HOME
+### (Optionally) Set ICC_HOME
 
 By default the `icc` command looks for the configuration files in the `ICC_HOME` directory. If the environment variable has not been set the value defaults to
 the `HOME` directory. If you would like to store the files in a location other than the `HOME` directory, set the `ICC_HOME` environment variable to your desired directory
