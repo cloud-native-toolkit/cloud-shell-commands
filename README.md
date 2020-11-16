@@ -58,17 +58,19 @@ export ICC_HOME=$PWD
 
 ### Add API Key(s)
 
-Run `icc --add-account` to register the apikey for an account. You will be prompted for the account nickname and the api key.
+Run `icc --add-account` to register the apikey for an account.
 
 ```shell script
 icc --add-account
 ```
 
+You will be prompted for the account nickname and the api key. The api key will not be echoed to the console.
+
 **Note:** Never store API Keys in Git, its a small price to pay for the simplicity of the time this little CLI trick saves you.
 
 ### Generate the cluster configuration
 
-1. Use the `icc` command to initialize the `ibmcloud.yaml` file with the existing clusters in the account:
+1. Use the `icc --generate` command to initialize the `ibmcloud.yaml` file with the existing clusters in the account:
        
     ```shell script
     icc --generate
@@ -78,16 +80,23 @@ icc --add-account
 
     **Note:** The `--generate` process merges the new results with the existing configuration, so it can be run repeatedly without losing information.
 
-2. Update the generated nicknames in `ibmcloud.yaml`.
-   
-    The generated file uses the cluster name as the nickname. In most cases you will want to use a shorter nickname to speed up the process.
+### Update the cluster nicknames
 
-    ```yaml
-    clusters:
-      bu70u43w09minpkoll2g:
-        nickname: m1
-        cluster: mooc-team-one
+The generated file uses the cluster name as the nickname. In most cases you will want to use a shorter nickname to speed up the process.
+
+1. List the defined clusters with `icc`
+   
+    ```shell script
+    icc
     ```
+
+2. Update the generated nicknames using `icc --nickname`
+   
+    ```shell script
+    icc --nickname
+    ```
+
+    You will be prompted to provide the cluster name or the existing cluster nickname then the new cluster nickname.
 
 ### Print the configured clusters
 

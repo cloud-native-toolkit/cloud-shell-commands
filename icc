@@ -26,20 +26,22 @@ if [[ ! -f ${CONFIG_FILE} ]] && [[ ! "$1" =~ --generate ]]; then
 fi
 
 function print_help {
-  echo "Usage: $(basename $0) [nickname] [--account {ACCOUNT_FILTER}] [--resourceGroup {RG_FILTER}] [--generate [{ACCOUNT_FILTER}]]"
+  echo "Usage: $(basename $0) [nickname] [--account {ACCOUNT_FILTER}] [--resourceGroup {RG_FILTER}] [--generate [{ACCOUNT_FILTER}]] [--nickname [{cluster name}]]"
   echo ""
   echo "  Logs into an IBM Cloud cluster"
   echo ""
   echo "Modes:"
-  echo "  login    - icc {nickname}"
-  echo "  print    - icc [--account {account name}] [--resourceGroup {resourceGroupName}]"
-  echo "  generate - icc --generate [{account name}]"
+  echo "  cluster login   - icc {nickname}"
+  echo "  print config    - icc [--account {account name}] [--resourceGroup {resourceGroupName}]"
+  echo "  generate config - icc --generate [{account name}]"
+  echo "  update nickname - icc --nickname [{cluster name}]"
   echo ""
   echo "Args:"
   echo "  nickname - the cluster nickname"
   echo "  --account, -a - filter to print the config for the provided account"
   echo "  --resourceGroup, -g - filter to print the config for the provided resource group"
   echo "  --generate - flag to generate the config from the account, optionally restricted to {account name}. The --generate process appends to the existing configuration"
+  echo "  --nickname - update the nickname for a cluster, optionally passing the cluster name after the flag"
   echo "  --help, -h - display help"
   exit 0
 }
@@ -110,6 +112,27 @@ function generate_config {
   exit 0
 }
 
+function update_nickname {
+  CLUSTER_ID="$1"
+  if [[ -z "${CLUSTER_ID}" ]]; then
+    echo -n "Please provide the current cluster name or nickname: "
+    read CLUSTER_ID
+  fi
+
+  echo -e -n "Provide the new nickname for \033[33m${CLUSTER_ID}\033[0m: "
+  read NICKNAME
+
+  CLUSTER_KEY=$(yq r -j ${CONFIG_FILE} clusters | jq -r --arg CLUSTER_ID "${CLUSTER_ID}" '. | to_entries | .[] | . |= (.key = .key) + .value | del(.value) | select(.cluster == $CLUSTER_ID or .nickname == $CLUSTER_ID) | .key')
+
+  yq w ${ICC_HOME}/ibmcloud.yaml "clusters.${CLUSTER_KEY}.nickname" "${NICKNAME}" > /tmp/ibmcloud.yaml && \
+    cp /tmp/ibmcloud.yaml ${ICC_HOME}/ibmcloud.yaml && \
+    rm /tmp/ibmcloud.yaml
+  
+  echo "Nickname for ${CLUSTER_ID} updated to ${NICKNAME} in ${ICC_HOME}/ibmcloud.yaml"
+
+  exit 0
+}
+
 if [[ -z "$1" ]] || [[ "$1" =~ ^- ]]; then
   if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     print_help
@@ -135,6 +158,15 @@ if [[ -z "$1" ]] || [[ "$1" =~ ^- ]]; then
     fi
 
     add_account "${ACCOUNT_NAME}"
+  elif [[ "$1" =~ --nickname ]]; then
+    NICKNAME=""
+    if [[ "$1" == "--nickname" ]]; then
+      NICKNAME="$2"
+    elif [[ "$1" =~ --nickname= ]]; then
+      NICKNAME=$(echo "$1" | sed -E "s/--nickname=//g")
+    fi
+
+    update_nickname "${NICKNAME}"
   fi
 
   IBMCLOUD_CONFIG=$(yq r -j "${CONFIG_FILE}" clusters | jq '. | to_entries | sort_by(.value.account) | .[] | . |= (.key = .key) + .value | del(.value)')
