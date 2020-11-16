@@ -20,8 +20,13 @@ ACCOUNT_FILE="${ICC_HOME}/ibmcloud-account.yaml"
 export ACCOUNT_FILE
 export CONFIG_FILE
 
+if [[ ! -f ${ACCOUNT_FILE} ]] && [[ ! "$1" =~ --add-account ]]; then
+  echo "No account configuration found. Add an account by running '$0 --add-account'"
+  exit 1
+fi
+
 if [[ ! -f ${CONFIG_FILE} ]] && [[ ! "$1" =~ --generate ]]; then
-  echo "No configuration found. Generate the configuration by running '$0 --generate'"
+  echo "No cluster configuration found. Generate the configuration by running '$0 --generate'"
   exit 1
 fi
 
