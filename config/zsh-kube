@@ -1,3 +1,6 @@
+
+
+# KUBE_PS1 start
 KUBE_PS1_SYMBOL_ENABLE=false
 KUBE_PS1_NS_ENABLE=true
 
