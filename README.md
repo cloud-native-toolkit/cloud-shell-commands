@@ -131,3 +131,17 @@ This speeds up you ability to switch accounts:
 Logging into ibmcloud: us-east/garage-dev-tools
 Logging into OpenShift cluster garage-dev-ocp45-vpc with server url https://c104-e.us-east.containers.cloud.ibm.com:30922
 ```
+
+## Install kube annotation to shell prompt
+
+The following commands will add the current cluster and project to the command prompt.
+
+### For bash shell (like IBM Cloud shell)
+
+1. Run `./install-kube-ps1-bash` to set up the prompt
+2. Source the .bashrc file to load the changes - `source ~/.bashrc`
+
+### For zsh shell
+
+1. Run `./install-kube-ps1-zsh` to set up the prompt
+2. Source the .zshrc file to load the changes - `source ~/.zshrc`
