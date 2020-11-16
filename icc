@@ -44,6 +44,25 @@ function print_help {
   exit 0
 }
 
+function add_account {
+  ACCOUNT_NAME="$1"
+  if [[ -z "${ACCOUNT_NAME}" ]]; then
+    echo -n "Please provide the nickname for the account: "
+    read ACCOUNT_NAME
+  fi
+
+  echo -e -n "Provide the API Key for the \033[33m${ACCOUNT_NAME}\033[0m account: "
+  read -s APIKEY
+
+  touch ${ICC_HOME}/ibmcloud-account.yaml
+  echo "$ACCOUNT_NAME: $APIKEY" | yq p - accounts | yq m ${ICC_HOME}/ibmcloud-account.yaml - > /tmp/account.yaml
+  cp /tmp/account.yaml ${ICC_HOME}/ibmcloud-account.yaml && rm /tmp/account.yaml
+
+  echo "Account information added to ${ICC_HOME}/ibmcloud-account.yaml"
+
+  exit 0
+}
+
 function generate_config {
   ACCOUNT_NAMES="$2"
   if [[ -z "$2" ]]; then
@@ -94,13 +113,11 @@ function generate_config {
 if [[ -z "$1" ]] || [[ "$1" =~ ^- ]]; then
   if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     print_help
-  fi
-
-  if [[ "$1" =~ "--generate" ]]; then
+  elif [[ "$1" =~ --generate ]]; then
     ACCOUNT_NAME=""
     if [[ "$1" == "--generate" ]]; then
       ACCOUNT_NAME="$2"
-    elif [[ "$1" =~ "--generate=" ]]; then
+    elif [[ "$1" =~ --generate= ]]; then
       ACCOUNT_NAME=$(echo "$1" | sed -E "s/--generate=//g")
     fi
 
@@ -109,6 +126,15 @@ if [[ -z "$1" ]] || [[ "$1" =~ ^- ]]; then
     fi
 
     generate_config "${CONFIG_FILE}" "${ACCOUNT_NAME}"
+  elif [[ "$1" =~ --add-account ]]; then
+    ACCOUNT_NAME=""
+    if [[ "$1" == "--add-account" ]]; then
+      ACCOUNT_NAME="$2"
+    elif [[ "$1" =~ --add-account= ]]; then
+      ACCOUNT_NAME=$(echo "$1" | sed -E "s/--add-account=//g")
+    fi
+
+    add_account "${ACCOUNT_NAME}"
   fi
 
   IBMCLOUD_CONFIG=$(yq r -j "${CONFIG_FILE}" clusters | jq '. | to_entries | sort_by(.value.account) | .[] | . |= (.key = .key) + .value | del(.value)')

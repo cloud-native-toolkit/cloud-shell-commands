@@ -56,23 +56,15 @@ and export the variable. E.g.
 export ICC_HOME=$PWD
 ```
 
-### Add API Key
+### Add API Key(s)
 
-1. Edit the `ibmcloud-account.yaml` file in the `cloud-shell-commands`.
+Run `icc --add-account` to register the apikey for an account. You will be prompted for the account nickname and the api key.
 
-    ```shell script
-    vi ./cloud-shell-commands/ibmcloud-account.yaml
-    ```
+```shell script
+icc --add-account
+```
 
-2. Replace the account nicknames with appropriate names for your account(s). Replace the `<api key>` entries with the correct API Keys for your accounts.
-
-    ```yaml
-    accounts:
-      europe: <api key>
-      north-america: <api key>
-    ```
-
-    **Note:** Never store API Keys in Git, its a small price to pay for the simplicity of the time this little CLI trick saves you 
+**Note:** Never store API Keys in Git, its a small price to pay for the simplicity of the time this little CLI trick saves you.
 
 ### Generate the cluster configuration
 
