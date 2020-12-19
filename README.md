@@ -10,7 +10,7 @@ The components included in the installer:
 - IBM Cloud fast switching (icc)
 - kube-ps1 prompt
 
-The installer verfifies/sets up the node environment before installing the IGC cli and copies the other clis into `~/bin` while setting up the PATH accordingly.
+The installer verifies/sets up the node environment before installing the IGC cli and copies the other clis into `~/bin` while setting up the PATH accordingly.
 After sourcing `.bashrc` or `.zshrc` all of the clis will be available in the PATH.  
 
 ## Installing
