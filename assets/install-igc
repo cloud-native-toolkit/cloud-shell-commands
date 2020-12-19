@@ -20,6 +20,8 @@ if command -v node > /dev/null && "${SCRIPT_DIR}/check-node-version"; then
     fi
   fi
 else
+  NVM_INSTALL="true"
+
   echo " + Installing LTS version of Node with nvm"
   curl -so- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash > /dev/null
 
@@ -34,3 +36,9 @@ fi
 
 echo " + Installing Cloud-Native Toolkit cli"
 npm i -g --silent @ibmgaragecloud/cloud-native-toolkit-cli
+
+if [[ -n "${NVM_INSTALL}" ]]; then
+  echo ""
+  echo "A new version of Node has been installed with NVM"
+  echo -e "  Run \e[97mnvm use default\e[0m"
+fi
