@@ -1,22 +1,8 @@
 #!/bin/bash
 
-isValidVersion() {
-  MIN_VERSION="v11.99.99"
-  VERSION=$(node --version)
-  VERSIONS=$(cat <<-END
-$VERSION
-$MIN_VERSION
-END
-)
+SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
-  if [[ $(echo ${VERSIONS} | sort --version-sort | tail -1) == "${MIN_VERSION}" ]]; then
-    return 1
-  else
-    return 0
-  fi
-}
-
-if command -v node > /dev/null && isValidVersion; then
+if command -v node > /dev/null && "${SCRIPT_DIR}/check-node-version"; then
   NPM_PREFIX=$(npm config get prefix)
 
   if [[ ! -w "${NPM_PREFIX}" ]]; then
