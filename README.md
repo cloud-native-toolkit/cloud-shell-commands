@@ -1,7 +1,26 @@
 # IBM Cloud Shell Command
 
-Set of scripts to enable fast access to setup to the **Cloud Native Toolkit** in the cloud shell, if you shell has expired you will need to re-run your setup.
+Scripts to set up the shell environment with several key clis to support Cloud-Native development with the ""Cloud-Native Toolkit".
 
+The components included in the installer:
+
+- ArgoCD cli (argocd)
+- Tekton cli (tkn)
+- IBM Garage Cloud CLI (igc)
+- kube-ps1 prompt
+- IBM Cloud fast swieching (icc)
+
+
+## Installing
+
+The components can all be installed with the following command:
+
+```shell
+VERSION=$(curl --silent "https://api.github.com/repos/ibm-garage-cloud/cloud-shell-commandsd/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+curl -sL "https://github.com/ibm-garage-cloud/cloud-shell-commands/releases/download/${VERSION}/install.sh" | \
+  sh - && \
+  . ~/.bashrc
+```
 
 ## Fork
 

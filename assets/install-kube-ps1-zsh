@@ -2,7 +2,7 @@
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
-curl -LO https://raw.githubusercontent.com/jonmosco/kube-ps1/master/kube-ps1.sh && \
+curl -sLO https://raw.githubusercontent.com/jonmosco/kube-ps1/master/kube-ps1.sh && \
   chmod +x kube-ps1.sh
 
 cat "${SCRIPT_DIR}/config/zsh-kube" >> ~/.zshrc
