@@ -1,6 +1,50 @@
 #!/bin/bash
-rm -rf ~/.npm
-mkdir ~/.npm
-npm config set prefix ~/.npm
+
+isValidVersion() {
+  MIN_VERSION="v11.99.99"
+  VERSION=$(node --version)
+  VERSIONS=$(cat <<-END
+$VERSION
+$MIN_VERSION
+END
+)
+
+  if [[ $(echo ${VERSIONS} | sort --version-sort | tail -1) == "${MIN_VERSION}" ]]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+if command -v node > /dev/null && isValidVersion; then
+  NPM_PREFIX=$(npm config get prefix)
+
+  if [[ ! -w "${NPM_PREFIX}" ]]; then
+    echo "Setting new NPM prefix directory"
+    rm -rf ~/.npm
+    mkdir ~/.npm
+    npm config set prefix ~/.npm
+
+    if [[ "${SHELL}" =~ zsh ]]; then
+      echo 'export PATH=~/.npm/bin:$PATH' >> ~/.zshrc
+      . ~/.zshrc
+    else
+      echo 'export PATH=~/.npm/bin:$PATH' >> ~/.bashrc
+      . ~/.bashrc
+    fi
+  fi
+else
+  echo "Installing LTS version of Node with nvm"
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
+
+  if [[ "${SHELL}" =~ zsh ]]; then
+    . ~/.zshrc
+  else
+    . ~/.bashrc
+  fi
+
+  nvm install --lts
+fi
+
+echo "Installing Cloud-Native Toolkit cli"
 npm i -g @ibmgaragecloud/cloud-native-toolkit-cli
-export PATH=~/.npm/bin:$PATH
