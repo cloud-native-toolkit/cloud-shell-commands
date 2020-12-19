@@ -1,10 +1,9 @@
 #!/bin/bash
 
 VERSION=$(curl --silent "https://api.github.com/repos/ibm-garage-cloud/cloud-shell-commands/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-
 URL="https://github.com/ibm-garage-cloud/cloud-shell-commands/releases/download/${VERSION}/assets.tar.gz"
 
-echo "Downloading scripts gzip: ${URL}"
+echo "Downloading scripts: ${URL}"
 curl -sSL -o assets.tar.gz "${URL}"
 
 SCRIPT_DIR="${PWD}/tmp"
@@ -17,23 +16,26 @@ rm ../assets.tar.gz
 mkdir ~/bin
 cd ~/bin
 
-echo "Installing argocd cli"
+echo "** Installing argocd cli"
 "${SCRIPT_DIR}/install-argocd"
 
-echo "Installing igc cli"
-"${SCRIPT_DIR}/install-igc"
-
-echo "Installing tkn cli"
+echo "** Installing tkn cli"
 "${SCRIPT_DIR}/install-tkn"
 
-echo "Setting up cmd with kube-ps1"
+echo "** Installing kube-ps1"
 "${SCRIPT_DIR}/install-kube-ps1-bash"
 "${SCRIPT_DIR}/install-kube-ps1-zsh"
 
-echo "Setting up icc"
+echo "** Installing icc"
 cp "${SCRIPT_DIR}/icc" .
+
+echo "** Installing igc cli"
+"${SCRIPT_DIR}/install-igc"
 
 rm -rf "${SCRIPT_DIR}"
 
-echo "export PATH='${PATH}:~/bin'" >> ~/.bashrc
-echo "export PATH='${PATH}:~/bin'" >> ~/.zshrc
+if [[ "${SHELL}" =~ zsh ]]; then
+  echo "export PATH='~/bin:${PATH}'" >> ~/.zshrc
+else
+  echo "export PATH='~/bin:${PATH}'" >> ~/.bashrc
+fi
