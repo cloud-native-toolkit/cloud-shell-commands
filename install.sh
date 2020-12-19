@@ -8,12 +8,12 @@ curl -sSL -o assets.tar.gz "${URL}"
 
 SCRIPT_DIR="${PWD}/tmp"
 
-mkdir "${SCRIPT_DIR}"
+mkdir -p "${SCRIPT_DIR}"
 cd "${SCRIPT_DIR}"
 tar xzf ../assets.tar.gz
 rm ../assets.tar.gz
 
-mkdir ~/bin
+mkdir -p ~/bin
 cd ~/bin
 
 echo "** Installing argocd cli"
