@@ -18,8 +18,7 @@ After sourcing `.bashrc` or `.zshrc` all of the clis will be available in the PA
 The components can all be installed with the following command:
 
 ```shell
-VERSION=$(curl --silent "https://api.github.com/repos/ibm-garage-cloud/cloud-shell-commands/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-curl -sL "https://github.com/ibm-garage-cloud/cloud-shell-commands/releases/download/${VERSION}/install.sh" | sh - && . ~/.bashrc
+curl -sL https://raw.githubusercontent.com/ibm-garage-cloud/cloud-shell-commands/main/install.sh | sh - && . ~/.bashrc
 ```
 
 ## Fork
