@@ -6,7 +6,7 @@ if command -v node > /dev/null && "${SCRIPT_DIR}/check-node-version"; then
   NPM_PREFIX=$(npm config get prefix)
 
   if [[ ! -w "${NPM_PREFIX}" ]]; then
-    echo "Setting new NPM prefix directory"
+    echo " + Setting new NPM prefix directory"
     rm -rf ~/.npm
     mkdir ~/.npm
     npm config set prefix ~/.npm
@@ -20,8 +20,8 @@ if command -v node > /dev/null && "${SCRIPT_DIR}/check-node-version"; then
     fi
   fi
 else
-  echo "Installing LTS version of Node with nvm"
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
+  echo " + Installing LTS version of Node with nvm"
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash > /dev/null
 
   if [[ "${SHELL}" =~ zsh ]]; then
     . ~/.zshrc
@@ -30,7 +30,13 @@ else
   fi
 
   nvm install --lts
+
+  if [[ "${SHELL}" =~ zsh ]]; then
+    echo "nvm use default" >> ~/.zshrc
+  else
+    echo "nvm use default" >> ~/.bashrc
+  fi
 fi
 
-echo "Installing Cloud-Native Toolkit cli"
-npm i -g @ibmgaragecloud/cloud-native-toolkit-cli
+echo " + Installing Cloud-Native Toolkit cli"
+npm i -g --quiet @ibmgaragecloud/cloud-native-toolkit-cli

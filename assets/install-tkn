@@ -4,5 +4,5 @@ VERSION=$(curl --silent "https://api.github.com/repos/tektoncd/cli/releases/late
 SEM_VER=$(echo "${VERSION}" | sed "s/v//g")
 
 curl -sLo tkn.tar.gz "https://github.com/tektoncd/cli/releases/download/${VERSION}/tkn_${SEM_VER}_Linux_x86_64.tar.gz"
-tar xvzf tkn.tar.gz -C "${PWD}" tkn
+tar xvzf tkn.tar.gz -C "${PWD}" tkn > /dev/null
 rm tkn.tar.gz
