@@ -1,8 +1,0 @@
-#!/bin/bash
-
-curl -LO https://raw.githubusercontent.com/jonmosco/kube-ps1/master/kube-ps1.sh && \
-  chmod +x kube-ps1.sh && \
-  mkdir -p ~/bin && \
-  mv kube-ps1.sh ~/bin
-
-cat config/bash-kube >> ~/.bashrc
