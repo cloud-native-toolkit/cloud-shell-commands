@@ -29,7 +29,7 @@ echo "** Installing kube-ps1"
 echo "** Installing icc"
 cp "${SCRIPT_DIR}/icc" .
 
-echo "** Installing igc cli"
+echo "** Installing Cloud-Native Toolkit cli"
 "${SCRIPT_DIR}/install-igc"
 
 rm -rf "${SCRIPT_DIR}"
