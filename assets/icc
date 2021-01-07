@@ -51,11 +51,11 @@ function print_help {
 function add_account {
   ACCOUNT_NAME="$1"
   if [[ -z "${ACCOUNT_NAME}" ]]; then
-    echo -n "Please provide the nickname for the account: "
+    echo -n "Please provide the nickname for the IBM Cloud account: "
     read ACCOUNT_NAME
   fi
 
-  echo -e -n "Provide the API Key for the \033[33m${ACCOUNT_NAME}\033[0m account: "
+  echo -e -n "Provide the IBM Cloud API Key for the \033[33m${ACCOUNT_NAME}\033[0m account: "
   APIKEY=""
   while [[ -z "${APIKEY}" ]]; do
     read -s APIKEY
