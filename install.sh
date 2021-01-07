@@ -35,7 +35,11 @@ echo "** Installing Cloud-Native Toolkit cli"
 rm -rf "${SCRIPT_DIR}"
 
 if [[ "${SHELL}" =~ zsh ]]; then
-  echo "export PATH='~/bin:${PATH}'" >> ~/.zshrc
+  if ! grep -qE "export PATH=.*~/bin" ~/.zshrc; then
+    echo 'export PATH="~/bin:${PATH}"' >> ~/.zshrc
+  fi
 else
-  echo "export PATH='~/bin:${PATH}'" >> ~/.bashrc
+  if ! grep -qE "export PATH=.*~/bin" ~/.bashrc; then
+    echo 'export PATH="~/bin:${PATH}"' >> ~/.bashrc
+  fi
 fi
