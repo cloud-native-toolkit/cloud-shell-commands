@@ -35,7 +35,7 @@ else
 fi
 
 echo " + Installing Cloud-Native Toolkit cli"
-npm i -g --silent @ibmgaragecloud/cloud-native-toolkit-cli
+npm i -g --silent @ibmgaragecloud/cloud-native-toolkit-cli 1> /dev/null
 
 if [[ -n "${NVM_INSTALL}" ]]; then
   echo ""
