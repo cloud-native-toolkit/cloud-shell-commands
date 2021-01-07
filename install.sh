@@ -16,6 +16,16 @@ rm ../assets.tar.gz
 mkdir -p ~/bin
 cd ~/bin
 
+if ! command -v jq > /dev/null; then
+  echo "** Installing jq"
+  "${SCRIPT_DIR}/install-jq"
+fi
+
+if ! command -v oc > /dev/null; then
+  echo "** Installing oc cli"
+  "${SCRIPT_DIR}/install-oc"
+fi
+
 if ! command -v argocd > /dev/null; then
   echo "** Installing argocd cli"
   "${SCRIPT_DIR}/install-argocd"
@@ -24,6 +34,11 @@ fi
 if ! command -v tkn > /dev/null; then
   echo "** Installing tkn cli"
   "${SCRIPT_DIR}/install-tkn"
+fi
+
+if ! command -v ibmcloud > /dev/null; then
+  echo "** Installing ibmcloud cli"
+  curl -sL https://ibm.biz/idt-installer | bash
 fi
 
 echo "** Installing kube-ps1"
