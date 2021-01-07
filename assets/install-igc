@@ -12,10 +12,14 @@ if command -v node > /dev/null && "${SCRIPT_DIR}/check-node-version"; then
     npm config set prefix ~/.npm
 
     if [[ "${SHELL}" =~ zsh ]]; then
-      echo 'export PATH=~/.npm/bin:$PATH' >> ~/.zshrc
+      if ! grep -qE "export PATH=.*~/.npm/bin" ~/.zshrc; then
+        echo 'export PATH="~/.npm/bin:${PATH}"' >> ~/.zshrc
+      fi
       . ~/.zshrc
     else
-      echo 'export PATH=~/.npm/bin:$PATH' >> ~/.bashrc
+      if ! grep -qE "export PATH=.*~/.npm/bin" ~/.bashrc; then
+        echo 'export PATH="~/.npm/bin:${PATH}"' >> ~/.bashrc
+      fi
       . ~/.bashrc
     fi
   fi

@@ -3,4 +3,12 @@
 mkdir -p ~/bin
 cp icc ~/bin
 
-echo "export PATH=~/bin:\$PATH" > ~/.bashrc
+if [[ "${SHELL}" =~ zsh ]]; then
+  if ! grep -qE "export PATH=.*~/bin" ~/.zshrc; then
+    echo 'export PATH="~/bin:${PATH}"' >> ~/.zshrc
+  fi
+else
+  if ! grep -qE "export PATH=.*~/bin" ~/.bashrc; then
+    echo 'export PATH="~/bin:${PATH}"' >> ~/.bashrc
+  fi
+fi
