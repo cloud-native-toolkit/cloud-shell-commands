@@ -1,6 +1,6 @@
 # IBM Cloud Shell Command
 
-Scripts to set up the shell environment with several key clis to support Cloud-Native development with the ""Cloud-Native Toolkit".
+Scripts to set up the shell environment with several key clis to support Cloud-Native development with the "Cloud-Native Toolkit".
 
 The components included in the installer:
 
@@ -18,7 +18,7 @@ After sourcing `.bashrc` or `.zshrc` all of the clis will be available in the PA
 The components can all be installed with the following command:
 
 ```shell
-curl -sL https://raw.githubusercontent.com/ibm-garage-cloud/cloud-shell-commands/main/install.sh | sh - && . ~/.bashrc
+curl -sL shell.cloudnativetoolkit.dev | sh - && . ~/.bashrc
 ```
 
 ## Fork
