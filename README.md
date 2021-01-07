@@ -9,6 +9,10 @@ The components included in the installer:
 - Tekton cli (tkn)
 - IBM Cloud fast switching (icc)
 - kube-ps1 prompt
+- OpenShift cli (oc)
+- Kubernetes cli (kubectl)
+- JSON cli (jq)
+- IBM Cloud cli (ibmcloud)
 
 The installer verifies/sets up the node environment before installing the IGC cli and copies the other clis into `~/bin` while setting up the PATH accordingly.
 After sourcing `.bashrc` or `.zshrc` all of the clis will be available in the PATH.  
