@@ -5,5 +5,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 curl -sLO https://raw.githubusercontent.com/jonmosco/kube-ps1/master/kube-ps1.sh && \
   chmod +x kube-ps1.sh
 
-cat "${SCRIPT_DIR}/config/bash-kube" >> ~/.bashrc
+if ! grep -q "# KUBE_PS1 start" ~/.bashrc; then
+  cat "${SCRIPT_DIR}/config/bash-kube" >> ~/.bashrc
+fi
 
