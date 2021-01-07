@@ -16,21 +16,29 @@ rm ../assets.tar.gz
 mkdir -p ~/bin
 cd ~/bin
 
-echo "** Installing argocd cli"
-"${SCRIPT_DIR}/install-argocd"
+if ! command -v argocd > /dev/null; then
+  echo "** Installing argocd cli"
+  "${SCRIPT_DIR}/install-argocd"
+fi
 
-echo "** Installing tkn cli"
-"${SCRIPT_DIR}/install-tkn"
+if ! command -v tkn > /dev/null; then
+  echo "** Installing tkn cli"
+  "${SCRIPT_DIR}/install-tkn"
+fi
 
 echo "** Installing kube-ps1"
 "${SCRIPT_DIR}/install-kube-ps1-bash"
 "${SCRIPT_DIR}/install-kube-ps1-zsh"
 
-echo "** Installing icc"
-cp "${SCRIPT_DIR}/icc" .
+if ! command -v icc > /dev/null; then
+  echo "** Installing icc"
+  cp "${SCRIPT_DIR}/icc" .
+fi
 
-echo "** Installing Cloud-Native Toolkit cli"
-"${SCRIPT_DIR}/install-igc"
+if ! command -v igc > /dev/null; then
+  echo "** Installing Cloud-Native Toolkit cli"
+  "${SCRIPT_DIR}/install-igc"
+fi
 
 rm -rf "${SCRIPT_DIR}"
 
