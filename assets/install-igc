@@ -6,19 +6,21 @@ if command -v node > /dev/null && "${SCRIPT_DIR}/check-node-version"; then
   NPM_PREFIX=$(npm config get prefix)
 
   if [[ ! -w "${NPM_PREFIX}" ]]; then
+    SET_PREFIX="true"
+
     echo "  + Setting new NPM prefix directory"
     rm -rf ~/.npm
     mkdir ~/.npm
     npm config set prefix ~/.npm
 
     if [[ "${SHELL}" =~ zsh ]]; then
-      if ! grep -qE "export PATH=.*~/.npm/bin" ~/.zshrc; then
-        echo 'export PATH="~/.npm/bin:${PATH}"' >> ~/.zshrc
+      if ! grep -qE 'export PATH=.*${HOME}/.npm/bin' ~/.zshrc; then
+        echo 'export PATH="${HOME}/.npm/bin:${PATH}"' >> ~/.zshrc
       fi
       . ~/.zshrc
     else
-      if ! grep -qE "export PATH=.*~/.npm/bin" ~/.bashrc; then
-        echo 'export PATH="~/.npm/bin:${PATH}"' >> ~/.bashrc
+      if ! grep -qE 'export PATH=.*${HOME}/.npm/bin' ~/.bashrc; then
+        echo 'export PATH="${HOME}/.npm/bin:${PATH}"' >> ~/.bashrc
       fi
       . ~/.bashrc
     fi
@@ -35,10 +37,13 @@ else
     . ~/.bashrc
   fi
 
-  nvm install --lts
+  nvm install --lts > /dev/null
 fi
 
-echo "  + Installing igc cli"
+if [[ -n "${SET_PREFIX}" ]] || [[ -n "${NVM_INSTALL}" ]]; then
+  echo "  + Installing igc cli"
+fi
+
 npm i -g --silent @ibmgaragecloud/cloud-native-toolkit-cli 1> /dev/null
 
 if [[ -n "${NVM_INSTALL}" ]]; then
