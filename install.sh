@@ -41,9 +41,11 @@ if ! command -v ibmcloud > /dev/null; then
   curl -sL https://ibm.biz/idt-installer | bash
 fi
 
-echo "** Installing kube-ps1"
-"${SCRIPT_DIR}/install-kube-ps1-bash"
-"${SCRIPT_DIR}/install-kube-ps1-zsh"
+if ! command -v kube-ps1.sh > /dev/null; then
+  echo "** Installing kube-ps1"
+  "${SCRIPT_DIR}/install-kube-ps1-bash"
+  "${SCRIPT_DIR}/install-kube-ps1-zsh"
+fi
 
 if ! command -v icc > /dev/null; then
   echo "** Installing icc"

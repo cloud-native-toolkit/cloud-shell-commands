@@ -25,6 +25,16 @@ The components can all be installed with the following command:
 curl -sL shell.cloudnativetoolkit.dev | sh - && . ~/.bashrc
 ```
 
+The installer updates PATH in the `.zshrc` or `.bashrc` file. You will need to source the file to apply the update to the current shell environment:
+
+```shell
+if [[ "${SHELL}" =~ zsh ]]; then
+  source ~/.zshrc
+else
+  source ~/.bashrc
+fi
+```
+
 ## Fork
 
 Fork this repo into you personal github account and customize the parameters for you personal configuration. Then use the git repo to clone into the Cloud Shell.
