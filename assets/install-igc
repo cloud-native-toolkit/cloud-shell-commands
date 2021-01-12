@@ -44,7 +44,11 @@ if [[ -n "${SET_PREFIX}" ]] || [[ -n "${NVM_INSTALL}" ]]; then
   echo "  + Installing igc cli"
 fi
 
-npm i -g --silent @ibmgaragecloud/cloud-native-toolkit-cli 1> /dev/null
+if command -v whoami && [[ $(whoami) == "root" ]]; then
+  npm i -g --silent @ibmgaragecloud/cloud-native-toolkit-cli --unsafe-perm=true --allow-root 1> /dev/null
+else
+  npm i -g --silent @ibmgaragecloud/cloud-native-toolkit-cli 1> /dev/null
+fi
 
 if [[ -n "${NVM_INSTALL}" ]]; then
   echo ""
