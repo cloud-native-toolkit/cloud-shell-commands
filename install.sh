@@ -36,11 +36,6 @@ if ! command -v tkn > /dev/null; then
   "${SCRIPT_DIR}/install-tkn"
 fi
 
-if ! command -v ibmcloud > /dev/null; then
-  echo "** Installing ibmcloud cli"
-  curl -sL https://ibm.biz/idt-installer | bash
-fi
-
 if ! command -v kube-ps1.sh > /dev/null; then
   echo "** Installing kube-ps1"
   "${SCRIPT_DIR}/install-kube-ps1-bash"
