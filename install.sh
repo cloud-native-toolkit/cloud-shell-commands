@@ -8,6 +8,12 @@ curl -sSL -o assets.tar.gz "${URL}"
 
 SCRIPT_DIR="${PWD}/tmp"
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
 mkdir -p "${SCRIPT_DIR}"
 cd "${SCRIPT_DIR}"
 tar xzf ../assets.tar.gz
@@ -54,12 +60,31 @@ fi
 
 rm -rf "${SCRIPT_DIR}"
 
+echo ""
+echo -e "${GREEN}kube-ps1${NC} has been installed to display the current Kubernetes context and namespace in the prompt. It can be turned on and off with the following commands:"
+echo ""
+echo -e "  ${YELLOW}kubeon${NC}     - turns kube-ps1 on for the current session"
+echo -e "  ${YELLOW}kubeon -g${NC}  - turns kube-ps1 on globally"
+echo -e "  ${YELLOW}kubeoff${NC}    - turns kube-ps1 off for the current session"
+echo -e "  ${YELLOW}kubeoff -g${NC} - turns kube-ps1 off globally"
+echo ""
+
 if [[ "${SHELL}" =~ zsh ]]; then
   if ! grep -qE 'export PATH=.*${HOME}/bin' ~/.zshrc; then
     echo 'export PATH="${HOME}/bin:${PATH}"' >> ~/.zshrc
   fi
+
+  echo "Your shell configuration has been updated. Run the following to apply the changes to the current terminal:"
+  echo ""
+  echo -e "  ${YELLOW}source ~/.zshrc${NC}"
 else
   if ! grep -qE 'export PATH=.*${HOME}/bin' ~/.bashrc; then
     echo 'export PATH="${HOME}/bin:${PATH}"' >> ~/.bashrc
   fi
+
+  echo "Your shell configuration has been updated. Run the following to apply the changes to the current terminal:"
+  echo ""
+  echo -e "  ${YELLOW}source ~/.bashrc${NC}"
 fi
+
+echo ""
