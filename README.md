@@ -22,7 +22,7 @@ After sourcing `.bashrc` or `.zshrc` all of the clis will be available in the PA
 The components can all be installed with the following command:
 
 ```shell
-curl -sL shell.cloudnativetoolkit.dev | sh - && . ~/.bashrc
+curl -sL shell.cloudnativetoolkit.dev | sh -
 ```
 
 The installer updates PATH in the `.zshrc` or `.bashrc` file. You will need to source the file to apply the update to the current shell environment:
@@ -34,6 +34,15 @@ else
   source ~/.bashrc
 fi
 ```
+
+### Usage
+
+The installer updates the prompt to include Kubernetes cluster and namespace information using `kube-ps1`. This information can be toggled on and off with the following commands:
+
+- `kubeon`     - turns kube-ps1 on for the current session
+- `kubeon -g`  - turns kube-ps1 on globally
+- `kubeoff`    - turns kube-ps1 off for the current session
+- `kubeoff -g` - turns kube-ps1 off globally
 
 ## Fork
 
