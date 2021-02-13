@@ -102,6 +102,12 @@ function generate_config {
 
     for PROVIDER in ${PROVIDERS}; do
       echo "    Processing provider: $PROVIDER"
+
+      if ! ibmcloud ks cluster ls --provider "${PROVIDER}" 1> /dev/null 2> /dev/null; then
+        echo "      Unable to get clusters for provider"
+        continue
+      fi
+
       PROVIDER_JSON=$(ibmcloud ks cluster ls --provider "${PROVIDER}" --output json)
       if [[ $(echo "${PROVIDER_JSON}" | jq 'length') == "0" ]]; then
         echo "      No clusters for provider"
