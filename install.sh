@@ -48,10 +48,8 @@ if ! command -v kube-ps1.sh > /dev/null; then
   "${SCRIPT_DIR}/install-kube-ps1-zsh"
 fi
 
-if ! command -v icc > /dev/null; then
-  echo "** Installing icc"
-  cp "${SCRIPT_DIR}/icc" .
-fi
+echo "** Installing icc"
+cp "${SCRIPT_DIR}/icc" .
 
 if ! command -v igc > /dev/null; then
   echo "** Installing Cloud-Native Toolkit cli"
