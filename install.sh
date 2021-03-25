@@ -1,7 +1,7 @@
 #!/bin/bash
 
-VERSION=$(curl --silent "https://api.github.com/repos/ibm-garage-cloud/cloud-shell-commands/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-URL="https://github.com/ibm-garage-cloud/cloud-shell-commands/releases/download/${VERSION}/assets.tar.gz"
+VERSION=$(curl --silent "https://api.github.com/repos/cloud-native-toolkit/cloud-shell-commands/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+URL="https://github.com/cloud-native-toolkit/cloud-shell-commands/releases/download/${VERSION}/assets.tar.gz"
 
 echo "Downloading scripts: ${URL}"
 curl -sSL -o assets.tar.gz "${URL}"
