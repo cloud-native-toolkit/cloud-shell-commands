@@ -305,7 +305,7 @@ else
   fi
 
   echo "Logging into OpenShift cluster ${CLUSTER_NAME} with server url ${SERVER_URL}"
-  oc login -u apikey -p ${APIKEY} --server=${SERVER_URL} 1> /dev/null
+  oc login -u apikey -p ${APIKEY} --server=${SERVER_URL} --insecure-skip-tls-verify=true 1> /dev/null
 fi
 
 if ! kubectl config get-clusters 1> /dev/null 2> /dev/null; then
