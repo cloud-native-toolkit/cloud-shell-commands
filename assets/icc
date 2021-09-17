@@ -35,6 +35,7 @@ function print_help {
   echo "Modes:"
   echo "  cluster login   - $(basename $0) {nickname}"
   echo "  print config    - $(basename $0) [--account {account name}] [--resourceGroup {resourceGroupName}]"
+  echo "  add account     - $(basename $0) --add-account [{account name}]"
   echo "  generate config - $(basename $0) --generate [{account name}]"
   echo "  update nickname - $(basename $0) --nickname [{cluster name}]"
   echo ""
@@ -42,11 +43,17 @@ function print_help {
   echo "  nickname - the cluster nickname"
   echo "  --account, -a - filter to print the config for the provided account"
   echo "  --resourceGroup, -g - filter to print the config for the provided resource group"
+  echo "  --add-account - flag to add a new account using a nickname and api key"
   echo "  --generate - flag to generate the config from the account, optionally restricted to {account name}. The --generate process appends to the existing configuration"
   echo "  --nickname - update the nickname for a cluster, optionally passing the cluster name after the flag"
   echo "  --help, -h - display help"
   exit 0
 }
+
+if ! command -v yq 1> /dev/null 2> /dev/null || [[ ! "$(yq --version)" =~ yq.version.4.* ]]; then
+  echo "yq v4 not found. Follow these instructions to install it - https://mikefarah.gitbook.io/yq/#install"
+  exit 1
+fi
 
 function add_account {
   ACCOUNT_NAME="$1"
@@ -61,8 +68,13 @@ function add_account {
     read -s APIKEY
   done
 
-  touch ${ICC_HOME}/ibmcloud-account.yaml
-  echo "$ACCOUNT_NAME: $APIKEY" | yq p - accounts | yq m ${ICC_HOME}/ibmcloud-account.yaml - > /tmp/account.yaml
+  if [[ ! -f ${ICC_HOME}/ibmcloud-account.yaml ]]; then
+    echo "accounts: {}" > ${ICC_HOME}/ibmcloud-account.yaml
+  fi
+
+  echo "{\"accountName\":\"$ACCOUNT_NAME\",\"apikey\":\"$APIKEY\"}" | \
+    yq e -P '.accounts[.accountName] = .apikey | del(.accountName) | del(.apikey)' - | \
+    yq eval-all -P 'select(fileIndex == 0) * select(fileIndex == 1)' ${ICC_HOME}/ibmcloud-account.yaml - > /tmp/account.yaml
   cp /tmp/account.yaml ${ICC_HOME}/ibmcloud-account.yaml && rm /tmp/account.yaml
 
   echo ""
@@ -77,7 +89,7 @@ function add_account {
 function generate_config {
   ACCOUNT_NAMES="$2"
   if [[ -z "$2" ]]; then
-    ACCOUNT_NAMES=$(yq r ${ICC_HOME}/ibmcloud-account.yaml accounts -j | jq -r '. | keys | .[]')
+    ACCOUNT_NAMES=$(yq eval '.accounts | keys | .[]' ${ICC_HOME}/ibmcloud-account.yaml)
     echo "Generate config for accounts: $(echo $ACCOUNT_NAMES | paste -sd ',' -)"
   else
     echo "Generate config for account: $2"
@@ -87,10 +99,13 @@ function generate_config {
 
   echo "${ACCOUNT_NAMES}" | while read ACCOUNT_NAME; do
     if [[ -f ${ACCOUNT_FILE} ]]; then
-      APIKEY="$(yq r ${ACCOUNT_FILE} accounts.${ACCOUNT_NAME})"
+      file="${ACCOUNT_FILE}"
     else
-      APIKEY="$(yq r ${CONFIG_FILE} accounts.${ACCOUNT_NAME})"
+      file="${CONFIG_FILE}"
     fi
+
+    APIKEY="$(ACCOUNT_NAME=$ACCOUNT_NAME yq e '.accounts[env(ACCOUNT_NAME)]' ${file})"
+
     if [[ -z "${APIKEY}" ]]; then
       echo "APIKEY not found in config: $ACCOUNT_NAME"
       continue
@@ -98,7 +113,9 @@ function generate_config {
 
     echo "  Logging in to account: ${ACCOUNT_NAME}"
     ibmcloud login --apikey "${APIKEY}" 1> /dev/null
-    touch "$1"
+    if [[ ! -f "$1" ]]; then
+      echo "clusters: {}" > "$1"
+    fi
 
     for PROVIDER in ${PROVIDERS}; do
       echo "    Processing provider: $PROVIDER"
@@ -118,10 +135,10 @@ function generate_config {
       echo "      ${PROVIDER_COUNT} cluster(s) found for provider"
       echo "${PROVIDER_JSON}" | \
         jq --arg ACCOUNT "${ACCOUNT_NAME}" --arg PROVIDER "${PROVIDER}" 'map({key: .id, value: {nickname: .name|ascii_downcase, cluster: .name, region: .region, resourceGroup: .resourceGroupName, account: $ACCOUNT, clusterType: .type, serverUrl: (if has("masterURL") then .masterURL else .serverURL end), provider: $PROVIDER}}) | from_entries' | \
-        yq r --prettyPrint - | \
-        yq p - 'clusters' | \
-        yq m "$1" - > /tmp/clusters.yaml && \
-        mv /tmp/clusters.yaml "$1"
+        yq e --prettyPrint '.' - | \
+        yq e '{"clusters": .}' - | \
+        yq eval-all -P 'select(fileIndex == 0) * select(fileIndex == 1)' "$1" - > /tmp/clusters.yaml && \
+        cp /tmp/clusters.yaml "$1" && rm /tmp/clusters.yaml
     done
   done
 
@@ -144,9 +161,9 @@ function update_nickname {
   echo -e -n "Provide the new nickname for \033[33m${CLUSTER_ID}\033[0m: "
   read NICKNAME
 
-  CLUSTER_KEY=$(yq r -j ${CONFIG_FILE} clusters | jq -r --arg CLUSTER_ID "${CLUSTER_ID}" '. | to_entries | .[] | . |= (.key = .key) + .value | del(.value) | select(.cluster == $CLUSTER_ID or .nickname == $CLUSTER_ID) | .key')
+  CLUSTER_KEY=$(yq e -j '.clusters' ${CONFIG_FILE} | jq -r --arg CLUSTER_ID "${CLUSTER_ID}" '. | to_entries | .[] | . |= (.key = .key) + .value | del(.value) | select(.cluster == $CLUSTER_ID or .nickname == $CLUSTER_ID) | .key')
 
-  yq w ${ICC_HOME}/ibmcloud.yaml "clusters.${CLUSTER_KEY}.nickname" "${NICKNAME}" > /tmp/ibmcloud.yaml && \
+  NICKNAME=$NICKNAME CLUSTER_KEY=$CLUSTER_KEY yq e 'clusters[env(CLUSTER_KEY)].nickname = env(NICKNAME)' ${ICC_HOME}/ibmcloud.yaml > /tmp/ibmcloud.yaml && \
     cp /tmp/ibmcloud.yaml ${ICC_HOME}/ibmcloud.yaml && \
     rm /tmp/ibmcloud.yaml
   
@@ -191,7 +208,7 @@ if [[ -z "$1" ]] || [[ "$1" =~ ^- ]]; then
     update_nickname "${NICKNAME}"
   fi
 
-  IBMCLOUD_CONFIG=$(yq r -j "${CONFIG_FILE}" clusters | jq '. | to_entries | sort_by(.value.account) | .[] | . |= (.key = .key) + .value | del(.value)')
+  IBMCLOUD_CONFIG=$(yq e -j '.clusters' "${CONFIG_FILE}" | jq '. | to_entries | sort_by(.value.account) | .[] | . |= (.key = .key) + .value | del(.value)')
 
   ACCOUNT_FILTER=".*"
   RG_FILTER=".*"
@@ -219,7 +236,7 @@ if [[ -z "$1" ]] || [[ "$1" =~ ^- ]]; then
   exit 0
 fi
 
-CLUSTER_RECORD=$(yq r -j ${CONFIG_FILE} clusters | jq --arg CLUSTER_ID "${CLUSTER_ID}" '. | to_entries | .[] | . |= (.key = .key) + .value | del(.value) | select(.cluster == $CLUSTER_ID or .nickname == $CLUSTER_ID)' | yq r --prettyPrint -)
+CLUSTER_RECORD=$(yq e -j '.clusters' ${CONFIG_FILE} | jq --arg CLUSTER_ID "${CLUSTER_ID}" '. | to_entries | .[] | . |= (.key = .key) + .value | del(.value) | select(.cluster == $CLUSTER_ID or .nickname == $CLUSTER_ID)' | yq e --prettyPrint '.' -)
 
 if [[ -z "${CLUSTER_RECORD}" ]]; then
   echo "Unable to find configuration for cluster: ${CLUSTER_ID}"
@@ -227,37 +244,37 @@ if [[ -z "${CLUSTER_RECORD}" ]]; then
   exit 1
 fi
 
-RESOURCE_GROUP="$(echo "${CLUSTER_RECORD}" | yq r - resourceGroup)"
+RESOURCE_GROUP="$(echo "${CLUSTER_RECORD}" | yq e '.resourceGroup' -)"
 if [[ -z "${RESOURCE_GROUP}" ]]; then
   echo "Resource group not found in config"
   exit 1
 fi
 
-CLUSTER_NAME="$(echo "${CLUSTER_RECORD}" | yq r - cluster)"
+CLUSTER_NAME="$(echo "${CLUSTER_RECORD}" | yq e '.cluster' -)"
 if [[ "${CLUSTER_NAME}" == "null" ]]; then
   CLUSTER_NAME="${RESOURCE_GROUP}-cluster"
 fi
 
-REGION="$(echo "${CLUSTER_RECORD}" | yq r - region)"
+REGION="$(echo "${CLUSTER_RECORD}" | yq e '.region' -)"
 if [[ "${REGION}" == "null" ]]; then
   REGION="us-east"
 fi
 
-API="$(echo "${CLUSTER_RECORD}" | yq r - api)"
+API="$(echo "${CLUSTER_RECORD}" | yq e '.api' -)"
 if [[ "${API}" == "null" ]]; then
   API="cloud.ibm.com"
 fi
 
-ACCOUNT_NAME="$(echo "${CLUSTER_RECORD}" | yq r - account)"
+ACCOUNT_NAME="$(echo "${CLUSTER_RECORD}" | yq e '.account' -)"
 
-SERVER_URL="$(echo "${CLUSTER_RECORD}" | yq r - serverUrl)"
+SERVER_URL="$(echo "${CLUSTER_RECORD}" | yq e '.serverUrl' -)"
 
-CLUSTER_TYPE="$(echo "${CLUSTER_RECORD}" | yq r - clusterType)"
+CLUSTER_TYPE="$(echo "${CLUSTER_RECORD}" | yq e '.clusterType' -)"
 
 if [[ -f ${ACCOUNT_FILE} ]]; then
-  APIKEY="$(yq r ${ACCOUNT_FILE} accounts.${ACCOUNT_NAME})"
+  APIKEY="$(ACCOUNT_NAME=$ACCOUNT_NAME yq e '.accounts[env(ACCOUNT_NAME)]' ${ACCOUNT_FILE})"
 else
-  APIKEY="$(yq r ${CONFIG_FILE} accounts.${ACCOUNT_NAME})"
+  APIKEY="$(ACCOUNT_NAME=$ACCOUNT_NAME yq e '.accounts[env(ACCOUNT_NAME)]' ${CONFIG_FILE})"
 fi
 if [[ -z "${APIKEY}" ]]; then
   echo "APIKEY not found in config"
