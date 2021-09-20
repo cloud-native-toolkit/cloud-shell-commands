@@ -234,13 +234,13 @@ if [[ -z "${CLUSTER_RECORD}" ]]; then
   exit 1
 fi
 
-RESOURCE_GROUP="$(echo "${CLUSTER_RECORD}" | yq e '.resourceGroup' - )"
+RESOURCE_GROUP="$(echo "${CLUSTER_RECORD}" | yq e '.resourceGroup' -)"
 if [[ -z "${RESOURCE_GROUP}" ]]; then
   echo "Resource group not found in config"
   exit 1
 fi
 
-CLUSTER_NAME="$(echo "${CLUSTER_RECORD}" | yq e '.cluster' - )"
+CLUSTER_NAME="$(echo "${CLUSTER_RECORD}" | yq e '.cluster' -)"
 if [[ "${CLUSTER_NAME}" == "null" ]]; then
   CLUSTER_NAME="${RESOURCE_GROUP}-cluster"
 fi
@@ -257,16 +257,20 @@ fi
 
 ACCOUNT_NAME="$(echo "${CLUSTER_RECORD}" | yq e '.account' -)"
 
-SERVER_URL="$(echo "${CLUSTER_RECORD}" | yq e '.serverUrl' - )"
+SERVER_URL="$(echo "${CLUSTER_RECORD}" | yq e '.serverUrl' -)"
 
-CLUSTER_TYPE="$(echo "${CLUSTER_RECORD}" | yq e  '.clusterType' -)"
+CLUSTER_TYPE="$(echo "${CLUSTER_RECORD}" | yq e '.clusterType' -)"
+
+
+if [[ -f ${ACCOUNT_FILE} ]]; then
+  INPUT_FILE=$ACCOUNT_FILE
+else
+  INPUT_FILE=$CONFIG_FILE
+fi
 
 QUERY=".accounts.${ACCOUNT_NAME}"
-if [[ -f ${ACCOUNT_FILE} ]]; then
-  APIKEY="$(yq e "${QUERY}" "${ACCOUNT_FILE}" )"
-else
-  APIKEY="$(yq e "${QUERY}"  "${CONFIG_FILE}" )"
-fi
+
+APIKEY="$(yq e "${QUERY}" "${INPUT_FILE}")"
 
 if [[ -z "${APIKEY}" ]]; then
   echo "APIKEY not found in config"
