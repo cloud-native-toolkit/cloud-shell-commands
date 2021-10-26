@@ -50,8 +50,13 @@ function print_help {
   exit 0
 }
 
-if ! command -v yq 1> /dev/null 2> /dev/null || [[ ! "$(yq --version)" =~ yq.version.4.* ]]; then
+if ! command -v yq 1> /dev/null 2> /dev/null || [[ ! "$(yq --version)" =~ yq.*.version.4.* ]] && [[ ! "$(yq --version)" =~ yq.version.4.* ]]; then
   echo "yq v4 not found. Follow these instructions to install it - https://mikefarah.gitbook.io/yq/#install"
+  exit 1
+fi
+
+if ! [ -x "$(command -v jq)" ]; then
+  echo "jq not found. Follow these instructions to install it - https://stedolan.github.io/jq/download/"
   exit 1
 fi
 
